@@ -13,7 +13,9 @@ O código-fonte da aplicação fica no repositório privado `pedromatosx/fotoviv
 |---|---|---|
 | `main` | Integração | Versão integrada e estável |
 | `feat/payments-photo-matching` | Desenvolvedor F01 | Pagamentos e busca inteligente (fases F01–F10) |
-| `feat/claude-visual-ux` | Claude (design) | Não é mantida neste repositório |
-| `security/codex-hardening` | Codex (segurança) | Não é mantida neste repositório |
+| `feat/claude-visual-ux` | Claude (design) | Telas e experiência visual |
+| `security/codex-hardening` | Codex (segurança) | Auditoria e correções de segurança |
+
+Todas as branches de trabalho partem da `main`. A integração na `main` só acontece por Pull Request e depois da revisão de segurança do Codex.
 
 > **Este repositório é público.** Não envie credenciais, dados reais, fotografias privadas nem dados biométricos.
