@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "graphify": {
+      "type": "local",
+      "command": [
+        "graphify",
+        "\\\\?\\C:\\Users\\Aldemir\\OneDrive\\Área de Trabalho\\Aldemir\\Site de fotos\\Site-para-fotos",
+        "--mcp"
+      ],
+      "enabled": true
+    }
+  }
+}
