@@ -1,5 +1,7 @@
 # Desenvolvedor F01 — Pagamentos e busca inteligente
 
+> ⚠️ **SUPERADO em 24/10/2026.** Este pacote foi escrito **sem acesso** ao código-fonte. Com o acesso liberado, a auditoria foi refeita no próprio código e várias inferências daqui se mostraram incorretas. A versão válida está no repositório privado da FotoViva, na branch `feat/payments-photo-matching`. **Não use estes documentos como referência.**
+
 Pacote de trabalho em Markdown das fases **F01–F10** da FotoViva. Ele cobre a área A (pagamentos simulados, comissões e entrega) e a área B (busca por roupas e por selfie). O briefing original e o status de cada item estão em [PROMPT.md](PROMPT.md).
 
 ## Situação geral
