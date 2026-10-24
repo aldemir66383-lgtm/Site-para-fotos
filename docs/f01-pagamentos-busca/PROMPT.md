@@ -1,5 +1,8 @@
 # DESENVOLVEDOR F01 — PAGAMENTOS E BUSCA INTELIGENTE DE FOTOGRAFIAS
 
+> **Cópia de trabalho do prompt original.** O texto recebido está preservado sem alterações no commit `ddeaae4`. Esta versão é editada a cada fase com blocos **Status** (legenda: ✅ feito · ⚠️ precisa de confirmação no código privado · 📝 especificado, falta implementar · ⛔/🔒 bloqueado).
+> Índice dos entregáveis: [README.md](README.md). Última revisão: 2026-10-23.
+
 ## 1. MISSÃO
 
 Você será o responsável pela implementação de dois conjuntos de funcionalidades da plataforma FotoViva:
@@ -9,6 +12,8 @@ Você será o responsável pela implementação de dois conjuntos de funcionalid
 **ÁREA B — Busca inteligente de fotografias por selfie, semelhança facial e características de roupas.**
 
 Repositório: `pedromatosx/fotoviva`
+
+> **Status:** ⚠️ o repositório é **privado** e não está acessível para `aldemir66383-lgtm`. O trabalho foi feito em `aldemir66383-lgtm/Site-para-fotos` (público), somente em Markdown, e está pronto para ser levado ao repositório privado ([roadmap, etapa 0](roadmap.md#etapa-0--desbloqueio-pré-requisito-)).
 
 Seu trabalho deverá acontecer em paralelo ao desenvolvimento visual realizado pelo Claude e à auditoria de segurança realizada pelo Codex.
 
@@ -30,6 +35,8 @@ Quando precisar modificar um arquivo compartilhado, documente a alteração nece
 
 Não faça merge sem revisão de segurança.
 
+> **Status:** ✅ a branch `feat/payments-photo-matching` foi criada no GitHub a partir da `main`. Nenhum arquivo de autenticação, segurança ou layout foi alterado. Merge só depois do Codex.
+
 ## 3. PRIMEIRA ETAPA — INSPEÇÃO
 
 Antes de criar funcionalidades:
@@ -47,6 +54,8 @@ A FotoViva já possui funcionalidades financeiras simuladas. Aproveite o código
 
 Não confunda simulações locais com pagamentos reais.
 
+> **Status:** ✅ itens 3, 5, 7 e 8 feitos com fontes públicas (deploy + bundle) → [F01](F01-auditoria.md), [F02](F02-arquitetura-pagamentos.md), [roadmap](roadmap.md). ⚠️ itens 1, 2, 4 e 6 (estrutura, GSD, armazenamento, bloqueios de lançamento) dependem do código privado; o que foi possível inferir está em [F01 §5](F01-auditoria.md#5-armazenamento-de-álbuns-e-fotografias-inferido).
+
 # PARTE A — SISTEMA DE PAGAMENTOS
 
 ## F01 — Auditoria do fluxo de compra
@@ -56,6 +65,8 @@ Mapeie toda a jornada:
 **Foto encontrada → seleção → carrinho → pedido → pagamento → confirmação → direito de download → entrega → comissão do fotógrafo.**
 
 Identifique o que já funciona e o que ainda depende de serviços externos.
+
+> **Status:** ✅ [F01-auditoria.md](F01-auditoria.md): jornada em 16 etapas. Já existem carrinho, pedido idempotente, Pix de laboratório, ledger com conciliação, tickets de 60 s e recuperação de convidado. Ausentes: saldo e repasse. Dependem de terceiros: Pix real, e-mail.
 
 ## F02 — Arquitetura de pagamentos
 
@@ -79,6 +90,8 @@ Não acople toda a aplicação a uma API específica.
 
 Prepare a substituição entre simulador, sandbox oficial e provedor autorizado.
 
+> **Status:** ✅ [F02](F02-arquitetura-pagamentos.md): 12 módulos, porta `PaymentProvider` e fábrica sem adaptador *live* (a ausência de código é o controle).
+
 ## F03 — Pix
 
 Implemente e teste:
@@ -99,6 +112,8 @@ Todo preço deve ser calculado no backend.
 Não aceite valores finais enviados pelo navegador como autoridade.
 
 **Não utilize credenciais financeiras reais nesta fase.**
+
+> **Status:** ✅ [F03](F03-pix.md) especificado. ✅ assinatura, deduplicação, confirmação atômica, expiração, valor divergente e concorrência **testados** no [código de referência](codigo-de-referencia.md). ⚠️ falta aplicar ao handler `pix-lab` existente. Nenhuma credencial real foi usada.
 
 ## F04 — Comissões e repasses
 
@@ -121,6 +136,8 @@ Comissões e repasses serão inicialmente fictícios.
 
 Nenhum saque ou transferência real deverá ser realizado.
 
+> **Status:** ✅ [F04](F04-comissoes-repasses.md): regras versionadas, centavos e *basis points*, partidas dobradas e ledger somente-inserção; invariante testada em 2.000 pedidos. Repasse só `simulated`, sem código de transferência.
+
 ## F05 — Entrega após pagamento
 
 O sistema deverá considerar uma fotografia comprada somente após confirmação válida do pagamento.
@@ -135,6 +152,8 @@ Implemente os controles necessários para:
 - Registrar entregas e falhas.
 
 A geração e entrega de imagens privadas deve seguir os requisitos definidos pelo Codex.
+
+> **Status:** ✅ [F05](F05-entrega.md): direitos explícitos, tickets com hash e uso único, limites, revogação e log. Perguntas ao Codex em F05 §6.
 
 # PARTE B — BUSCA INTELIGENTE DE FOTOGRAFIAS
 
@@ -168,6 +187,8 @@ Não apresente uma correspondência como identidade pessoal comprovada.
 
 O reconhecimento facial deverá permanecer desativado para dados reais até aprovação da arquitetura, requisitos legais e revisão do Codex.
 
+> **Status:** ⛔ [F06](F06-busca-selfie.md): fluxo e arquitetura projetados; flag `FV_FACE_SEARCH` só aceita `off` ou `synthetic`. O bloqueio principal é a base legal para os **terceiros** nas fotos (LGPD, art. 11), além de menores (art. 14) e RIPD (art. 38).
+
 ## F07 — Busca por roupas e características visuais
 
 Além da selfie, implemente uma busca que permita ao usuário descrever ou selecionar características visuais da fotografia.
@@ -199,6 +220,8 @@ Priorize busca por características de vestuário como alternativa que não exij
 
 Não transforme informações visuais em perfis pessoais persistentes sem necessidade.
 
+> **Status:** ✅ [F07](F07-busca-roupas.md): todos os exemplos do briefing são interpretados (testado); cores por região da **mesma pessoa**; imagem de referência processada no navegador. 📝 classificador de cor e índice dependem do código.
+
 ## F08 — Arquitetura do mecanismo de busca
 
 Analise possíveis abordagens:
@@ -222,6 +245,8 @@ Não envie fotografias privadas para provedores externos sem autorização.
 
 Prepare testes com imagens sintéticas e de uso permitido.
 
+> **Status:** ✅ [F08](F08-mecanismo-de-busca.md): ADR em três fases (B1 cores sem custo, B2 CLIP sem a cabeça, B3 rosto bloqueado). Nenhuma API paga; testes com cenas sintéticas e verdade de referência.
+
 ## F09 — Indexação e busca em álbuns
 
 Projete como as fotografias serão processadas e pesquisadas.
@@ -243,6 +268,8 @@ O sistema não poderá retornar fotos privadas simplesmente porque suas caracter
 
 A autorização de acesso deve ser aplicada antes da entrega dos resultados.
 
+> **Status:** ✅ [F09](F09-indexacao.md): visibilidade única com a galeria via `JOIN`; SQL validada (exclui fotos privadas e de outros álbuns e exige a mesma pessoa); limites de requisição e eliminação de temporários.
+
 ## F10 — Interface de integração
 
 Como o Claude será responsável pelo design, você deverá entregar contratos e componentes funcionais mínimos, sem impor alterações visuais extensas.
@@ -260,6 +287,8 @@ Defina interfaces para:
 - Receber direitos de download.
 
 Documente os contratos para que o Claude possa implementar as telas sem precisar modificar a lógica do servidor.
+
+> **Status:** ✅ [F10](F10-contratos-api.md): os 9 contratos pedidos + códigos de erro + hooks mínimos sem estilo. Requisitos de tela em [integracao-claude.md](integracao-claude.md).
 
 ## 4. TESTES OBRIGATÓRIOS
 
@@ -302,6 +331,8 @@ Utilize exclusivamente dados sintéticos ou imagens cuja utilização esteja aut
 
 Os testes devem incluir casos negativos.
 
+> **Status:** ✅ [testes.md](testes.md): todos os cenários listados viraram casos (PAG-01…12, BUS-00…17); 25 executados e passando, os demais 📝 dependem das rotas reais.
+
 ## 5. COLABORAÇÃO COM CODEX
 
 O Codex é responsável pela segurança transversal do projeto.
@@ -322,6 +353,8 @@ Corrija os problemas identificados durante a revisão de segurança.
 
 Nenhuma aprovação visual ou teste financeiro simulado substitui a revisão de segurança.
 
+> **Status:** ✅ pacote pronto em [revisao-codex.md](revisao-codex.md). ⏳ revisão ainda não feita.
+
 ## 6. AUTONOMIA E METODOLOGIA GSD
 
 Organize o desenvolvimento em fases F01 a F10.
@@ -335,6 +368,8 @@ Não interrompa para solicitar confirmação de pequenas alterações técnicas.
 Continue pelas tarefas independentes quando houver bloqueios.
 
 Não realize trabalho em segundo plano fora de uma sessão ativa sem uma automação configurada.
+
+> **Status:** ✅ trabalho em commits por fase na branch; nada ficou rodando em segundo plano.
 
 ## 7. LIMITES OBRIGATÓRIOS
 
@@ -353,6 +388,8 @@ Não realize:
 
 A versão pública atual da FotoViva deverá continuar isolada dos recursos financeiros e biométricos.
 
+> **Status:** ✅ todos os limites respeitados. O deploy público foi só consultado com `GET` e continua respondendo `403` em todas as rotas de API.
+
 ## 8. ENTREGA FINAL
 
 Crie uma Pull Request com:
@@ -367,6 +404,8 @@ Crie uma Pull Request com:
 - Recursos ainda bloqueados.
 - Requisitos de integração com Claude.
 - Requisitos de revisão com Codex.
+
+> **Status:** ✅ texto da PR pronto em [PULL_REQUEST.md](PULL_REQUEST.md). ⚠️ a PR final é no repositório privado, que depende de acesso.
 
 **COMECE PELA AUDITORIA DO QUE JÁ EXISTE E CONTINUE AUTONOMAMENTE PELAS FASES F01 A F10. NÃO REIMPLEMENTE O QUE JÁ ESTIVER CORRETO.**
 
