@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fotoviva-photos",
+  "main": "src/server/photos/worker.ts",
+  "compatibility_date": "2026-10-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "vars": {
+    "R2_ACCOUNT_ID": "REPLACE_ACCOUNT_ID",
+    "R2_BUCKET_NAME": "fotoviva-private",
+    "AUTH_JWKS_URL": "https://auth.example.com/.well-known/jwks.json",
+    "AUTH_ISSUER": "https://auth.example.com/",
+    "AUTH_AUDIENCE": "fotoviva",
+    "MEDIA_SERVICE_URL": "https://media.example.com/process"
+  },
+  "d1_databases": [{
+    "binding": "DB", "database_name": "fotoviva",
+    "database_id": "REPLACE_DATABASE_ID", "migrations_dir": "src/server/db/migrations"
+  }],
+  "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "fotoviva-private" }],
+  "queues": {
+    "producers": [{ "binding": "PHOTO_QUEUE", "queue": "fotoviva-photos" }],
+    "consumers": [{
+      "queue": "fotoviva-photos", "max_batch_size": 1,
+      "max_batch_timeout": 1, "max_retries": 5, "max_concurrency": 8,
+      "dead_letter_queue": "fotoviva-photos-dlq", "retry_delay": 60
+    }]
+  },
+  "triggers": { "crons": ["*/2 * * * *"] }
+}
