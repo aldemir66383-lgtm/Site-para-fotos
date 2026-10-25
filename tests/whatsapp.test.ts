@@ -3,6 +3,7 @@ import {
   api,
   buyer,
   commerceEnvironment,
+  defaultFeatureFlags,
   paymentEvent,
 } from "./commerce-helpers.js";
 import {
@@ -43,6 +44,19 @@ async function setup() {
 }
 
 describe("WhatsApp pós-pagamento", () => {
+  it("com a flag padrão do wrangler desligada não envia mesmo com credenciais e opt-in", async () => {
+    const c = await setup();
+    Object.assign(c.env, defaultFeatureFlags);
+    expect(c.env.WHATSAPP_ENABLED).toBe("off");
+    const send = vi.fn();
+    vi.stubGlobal("fetch", send);
+    await settleVerifiedPayment(c.env, paymentEvent);
+    await dispatchOrderWhatsApp(c.env, "order-1");
+    await drainWhatsAppOutbox(c.env);
+    expect(send).not.toHaveBeenCalled();
+    expect(c.sqlite.prepare("SELECT state,attempts FROM whatsapp_outbox").get()).toMatchObject({ state: "pending", attempts: 0 });
+  });
+
   it("integra telefone do checkout ao webhook autenticado e ao disparo imediato", async () => {
     const c = await setup();
     c.env.WEBHOOK_SECRET = "synthetic-webhook-secret";
@@ -64,6 +78,8 @@ describe("WhatsApp pós-pagamento", () => {
         { "Idempotency-Key": "whatsapp-checkout-fixture" },
       ),
       c.env,
+      undefined,
+      buyer,
     );
     expect(created?.status).toBe(201);
     const order = (await created!.json()) as {

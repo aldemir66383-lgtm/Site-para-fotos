@@ -21,6 +21,7 @@ export interface Env {
   FV_FACE_SEARCH?: string;
   FACE_MODEL_VERSION?: string;
   FACE_EMBEDDING_DIMENSIONS?: string;
+  FACE_MAX_SCANNED_VECTORS?: string;
   FACE_MEDIUM_THRESHOLD?: string;
   FACE_HIGH_THRESHOLD?: string;
   FACE_EMBEDDINGS_URL?: string;

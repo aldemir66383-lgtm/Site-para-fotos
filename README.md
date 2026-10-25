@@ -6,6 +6,16 @@ Busca facial com consentimento específico, índice cifrado por álbum, compara�
 
 Veja [contratos e configuração Aire Photos](docs/aire-photos-selfie-whatsapp.md). Os nomes internos FotoViva foram preservados para compatibilidade; serviços externos exigem suas credenciais e o catálogo facial precisa estar habilitado/indexado.
 
+`FV_FACE_SEARCH` e `WHATSAPP_ENABLED` vêm em `off` no `wrangler.jsonc`. A ativação por ambiente depende da decisão dos sócios: base legal LGPD para biometria e, para WhatsApp, conta Meta Business verificada e template aprovado. A busca síncrona exige Workers Paid e orçamento de CPU adequado; `FACE_MAX_SCANNED_VECTORS` aceita inteiros de 1 a 30000, com padrão 30000.
+
+`PUBLIC_SITE_URL` permanece em `https://fotoviva-pedromatosx-lab.pedromatos2050.workers.dev`, o endereço de laboratório. O domínio ainda não foi comprado; quando a zona estiver ativa, alterar a variável para `https://airephotos.com.br` no ambiente correspondente.
+
+## Checkout e preços de laboratório
+
+`POST /api/fotoviva/orders` e `GET /api/fotoviva/orders/:id` exigem sessão autenticada com papel `buyer` ou `photographer`. O comprador é o ID da sessão; a idempotência é isolada por comprador e pedidos de outro usuário respondem 404. Todas as fotos devem ser verificadas, distintas e pertencer ao álbum informado.
+
+A constante exportada `LAB_PHOTO_PRICING`, em `src/server/finance/checkout.ts`, é a única tabela provisória: 1–2 fotos a 1500 centavos cada, 3–5 a 1200 e 6 ou mais a 1000. São valores apenas de laboratório, sujeitos à decisão dos sócios sobre combos **B12** e taxas **B10-03**. Não representam preços comerciais aprovados. O checkout exige uma regra previamente cadastrada em `commission_rules` e responde 503 `pricing_not_configured` se não houver nenhuma; não cria comissão, taxas ou retenção automaticamente.
+
 ## Entrega e contabilidade — Fase 4.1
 
 Tickets de uso único (60 s), direitos de 30 dias, originais individuais e ZIP64 por streaming do R2, ledger em partidas dobradas e solicitação de repasse com reserva atômica de saldo. Consulte os [contratos e a integração com o PSP](docs/fase-4-entrega-ledger.md).

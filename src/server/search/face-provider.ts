@@ -16,12 +16,14 @@ export interface FaceConfig {
   dimensions: number;
   medium: number;
   high: number;
+  maxScannedVectors: number;
 }
 
 export function faceConfig(env: Env): FaceConfig {
   const dimensions = Number(env.FACE_EMBEDDING_DIMENSIONS),
     medium = Number(env.FACE_MEDIUM_THRESHOLD),
-    high = Number(env.FACE_HIGH_THRESHOLD);
+    high = Number(env.FACE_HIGH_THRESHOLD),
+    maxScannedVectors = Number(env.FACE_MAX_SCANNED_VECTORS ?? "30000");
   if (
     !env.FACE_MODEL_VERSION ||
     !Number.isInteger(dimensions) ||
@@ -34,6 +36,9 @@ export function faceConfig(env: Env): FaceConfig {
     medium < 0 ||
     high <= medium ||
     high > 1 ||
+    !Number.isInteger(maxScannedVectors) ||
+    maxScannedVectors < 1 ||
+    maxScannedVectors > 30000 ||
     !env.FACE_INDEX_ENCRYPTION_KEY ||
     !env.FACE_IP_HASH_SECRET
   ) {
@@ -43,7 +48,7 @@ export function faceConfig(env: Env): FaceConfig {
       "Busca facial ainda não configurada.",
     );
   }
-  return { model: env.FACE_MODEL_VERSION, dimensions, medium, high };
+  return { model: env.FACE_MODEL_VERSION, dimensions, medium, high, maxScannedVectors };
 }
 
 export function normalizeVector(

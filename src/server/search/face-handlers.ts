@@ -195,7 +195,7 @@ async function createSession(
         .all<{ photo_id: string; face_index: number; ciphertext: string }>();
       if (!rows.results.length) break;
       for (const row of rows.results) {
-        if (++scanned > 30000)
+        if (++scanned > config.maxScannedVectors)
           throw new ApiError(
             503,
             "face_index_limit",

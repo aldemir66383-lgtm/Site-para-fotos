@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { authenticateSession, type AuthenticateSession } from "../auth/session.js";
 import { ApiError, readLimited } from "../photos/contracts.js";
 import { json } from "../photos/handlers.js";
 import type { Env } from "../photos/env.js";
@@ -13,7 +14,8 @@ import { timingSafeEqual } from "node:crypto";
 const orderInputSchema = z
   .object({
     albumId: z.string().min(1).max(200),
-    photoIds: z.array(z.string().min(1).max(200)).min(1).max(1000),
+    photoIds: z.array(z.string().min(1).max(200)).min(1).max(1000)
+      .refine((ids) => new Set(ids).size === ids.length, "Não envie IDs de fotos duplicados."),
     buyer: z
       .object({
         name: z.string().max(200).optional(),
@@ -41,22 +43,21 @@ function getPaymentProvider(env: Env): PaymentProvider {
   return new MockPaymentProvider();
 }
 
-/**
- * Precificação inteligente em combos:
- * 1 a 2 fotos: 1500 centavos cada (R$ 15,00)
- * 3 a 5 fotos: 1200 centavos cada (R$ 12,00)
- * 6 ou mais fotos: 1000 centavos cada (R$ 10,00)
- */
+// Tabela provisória de laboratório; depende da decisão dos sócios sobre combos B12 e taxas B10-03.
+export const LAB_PHOTO_PRICING = [
+  { minPhotos: 6, unitPriceCents: 1000 },
+  { minPhotos: 3, unitPriceCents: 1200 },
+  { minPhotos: 1, unitPriceCents: 1500 },
+] as const;
+
 function calculateUnitPriceCents(totalPhotos: number): number {
-  if (totalPhotos >= 6) return 1000;
-  if (totalPhotos >= 3) return 1200;
-  return 1500;
+  return LAB_PHOTO_PRICING.find((tier) => totalPhotos >= tier.minPhotos)!.unitPriceCents;
 }
 
 export async function createOrder(
   request: Request,
   env: Env,
-  buyerSubject?: string,
+  buyerSubject: string,
 ): Promise<Response> {
   if (
     request.headers.get("Content-Type")?.split(";")[0].trim() !==
@@ -87,18 +88,12 @@ export async function createOrder(
   }
   const idempotencyKey =
     request.headers.get("Idempotency-Key") || crypto.randomUUID();
-  const subject =
-    buyerSubject ||
-    request.headers.get("X-Buyer-Subject") ||
-    (request.headers.get("Idempotency-Key")
-      ? `guest:${request.headers.get("Idempotency-Key")}`
-      : `guest:${crypto.randomUUID()}`);
 
   // Verifica se o pedido idempotente já existe
   const existing = await env.DB.prepare(
     "SELECT id, total_cents, item_count, status, expires_at FROM orders WHERE buyer_subject = ? AND idempotency_key = ?",
   )
-    .bind(subject, idempotencyKey)
+    .bind(buyerSubject, idempotencyKey)
     .first<{
       id: string;
       total_cents: number;
@@ -136,9 +131,9 @@ export async function createOrder(
   // Busca e valida as fotos no D1
   const placeholders = input.photoIds.map(() => "?").join(",");
   const photos = await env.DB.prepare(
-    `SELECT id, photographer_id FROM photos WHERE id IN (${placeholders}) AND status = 'verified'`,
+    `SELECT id, photographer_id FROM photos WHERE album_id = ? AND id IN (${placeholders}) AND status = 'verified'`,
   )
-    .bind(...input.photoIds)
+    .bind(input.albumId, ...input.photoIds)
     .all<{ id: string; photographer_id: string }>();
 
   if (photos.results.length !== input.photoIds.length) {
@@ -150,19 +145,12 @@ export async function createOrder(
   }
 
   // Busca a regra de comissão ativa
-  let rule = await env.DB.prepare(
+  const rule = await env.DB.prepare(
     "SELECT id FROM commission_rules ORDER BY version DESC LIMIT 1",
   ).first<{ id: string }>();
 
   if (!rule) {
-    rule = { id: "rule-default-v1" };
-    await env.DB.prepare(
-      `INSERT OR IGNORE INTO commission_rules
-       (id, version, platform_fee_bps, provider_fee_bps, provider_fee_fixed_cents, provider_fee_bearer, hold_days)
-       VALUES (?, 1, 2000, 99, 0, 'platform', 14)`,
-    )
-      .bind(rule.id)
-      .run();
+    throw new ApiError(503, "pricing_not_configured", "Regra de comissão ainda não configurada.");
   }
 
   const orderId = crypto.randomUUID();
@@ -203,7 +191,7 @@ export async function createOrder(
        VALUES (?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       orderId,
-      subject,
+      buyerSubject,
       idempotencyKey,
       photos.results.length,
       totalCents,
@@ -241,7 +229,13 @@ export async function createOrder(
   );
 }
 
-export async function getOrder(orderId: string, env: Env): Promise<Response> {
+export async function getOrder(orderId: string, env: Env, buyerSubject: string): Promise<Response> {
+  const owned = await env.DB.prepare(
+    "SELECT id FROM orders WHERE id = ? AND buyer_subject = ?",
+  ).bind(orderId, buyerSubject).first();
+  if (!owned) {
+    throw new ApiError(404, "order_not_found", "Pedido não encontrado.");
+  }
   const nowIso = new Date().toISOString();
 
   // Expiração preguiçosa (lazy expiration)
@@ -255,9 +249,9 @@ export async function getOrder(orderId: string, env: Env): Promise<Response> {
   ]);
 
   const order = await env.DB.prepare(
-    "SELECT id, buyer_subject, status, item_count, total_cents, expires_at, created_at FROM orders WHERE id = ?",
+    "SELECT id, buyer_subject, status, item_count, total_cents, expires_at, created_at FROM orders WHERE id = ? AND buyer_subject = ?",
   )
-    .bind(orderId)
+    .bind(orderId, buyerSubject)
     .first<{
       id: string;
       buyer_subject: string;
@@ -409,6 +403,7 @@ export async function handleCheckoutRequest(
   request: Request,
   env: Env,
   ctx?: Pick<ExecutionContext, "waitUntil">,
+  authenticate: AuthenticateSession = authenticateSession,
 ): Promise<Response | null> {
   const url = new URL(request.url);
   const path = url.pathname;
@@ -424,10 +419,15 @@ export async function handleCheckoutRequest(
   if (!isCreateOrder && !orderMatch && !isWebhook) return null;
 
   try {
-    if (isCreateOrder && request.method === "POST")
-      return await createOrder(request, env);
-    if (orderMatch && request.method === "GET")
-      return await getOrder(orderMatch[1], env);
+    if (isCreateOrder || orderMatch) {
+      const session = await authenticate(request, env);
+      if (!["buyer", "photographer"].includes(session.role))
+        throw new ApiError(403, "buyer_required", "Sessão de comprador necessária.");
+      if (isCreateOrder && request.method === "POST")
+        return await createOrder(request, env, session.id);
+      if (orderMatch && request.method === "GET")
+        return await getOrder(orderMatch[1], env, session.id);
+    }
     if (isWebhook && request.method === "POST")
       return await handlePixWebhook(request, env, ctx);
     return json(
@@ -436,7 +436,7 @@ export async function handleCheckoutRequest(
     );
   } catch (error) {
     if (error instanceof z.ZodError)
-      return json({ error: "Dados inválidos.", code: "invalid_input" }, 400);
+      return json({ error: error.issues[0]?.message ?? "Dados inválidos.", code: "invalid_input" }, 400);
     if (error instanceof ApiError)
       return json({ error: error.message, code: error.code }, error.status);
     console.error("checkout_request_failed");

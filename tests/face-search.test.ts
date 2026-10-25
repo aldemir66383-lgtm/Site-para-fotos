@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { commerceEnvironment, buyer, api } from "./commerce-helpers.js";
+import { commerceEnvironment, buyer, api, defaultFeatureFlags } from "./commerce-helpers.js";
 import { handleFaceRequest } from "../src/server/search/face-handlers.js";
 import { indexPhotoFaces } from "../src/server/search/face-index.js";
 import {
   cosine,
+  faceConfig,
   httpFaceProvider,
   normalizeVector,
   type Face,
@@ -71,6 +72,42 @@ function selfie(
 }
 
 describe("busca por selfie em RAM", () => {
+  it("com a flag padrão do wrangler desligada retorna feature_disabled sem inferência", async () => {
+    const c = await setup();
+    Object.assign(c.env, defaultFeatureFlags);
+    expect(c.env.FV_FACE_SEARCH).toBe("off");
+    const provider = vi.fn(async () => [face()]);
+    const response = await handleFaceRequest(selfie(), c.env, buyer, provider);
+    expect(response?.status).toBe(403);
+    expect(await response!.json()).toMatchObject({ code: "feature_disabled" });
+    expect(provider).not.toHaveBeenCalled();
+    expect(c.sqlite.prepare("SELECT count(*) AS n FROM search_sessions").get()?.n).toBe(0);
+  });
+
+  it("respeita o teto de vetores configurado e não persiste resultados parciais", async () => {
+    const c = await setup();
+    c.env.FACE_MAX_SCANNED_VECTORS = "1";
+    const query = face();
+    const response = await handleFaceRequest(selfie(), c.env, buyer, async () => [query]);
+    expect(response?.status).toBe(503);
+    expect(await response!.json()).toMatchObject({ code: "face_index_limit" });
+    expect(query.vector.every((v) => v === 0)).toBe(true);
+    expect(c.sqlite.prepare("SELECT count(*) AS n FROM search_sessions").get()?.n).toBe(0);
+  });
+
+  it("valida a faixa inteira do teto de vetores e mantém o padrão de 30000", async () => {
+    const c = await setup();
+    expect(faceConfig(c.env).maxScannedVectors).toBe(30000);
+    for (const value of ["", "0", "-1", "30001", "1.5", "NaN", "Infinity"]) {
+      c.env.FACE_MAX_SCANNED_VECTORS = value;
+      expect(() => faceConfig(c.env)).toThrow(expect.objectContaining({ status: 503, code: "face_not_configured" }));
+    }
+    for (const value of ["1", "30000"]) {
+      c.env.FACE_MAX_SCANNED_VECTORS = value;
+      expect(faceConfig(c.env).maxScannedVectors).toBe(Number(value));
+    }
+  });
+
   it("classifica e deduplica fotos em alta/media, registra IP pseudonimizado e zera buffers", async () => {
     const c = await setup();
     let retainedImage: Uint8Array | undefined;

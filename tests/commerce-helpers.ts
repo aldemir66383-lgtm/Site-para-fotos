@@ -1,16 +1,24 @@
+import { readFileSync } from "node:fs";
+import type { AuthenticateSession } from "../src/server/auth/session.js";
 import { testEnvironment } from "./helpers.js";
 import { settleVerifiedPayment } from "../src/server/finance/settlement.js";
 
-export const buyer = async () => ({ id: "buyer-1", role: "buyer" });
-export const photographer = async () => ({ id: "owner", role: "photographer" });
+const { vars } = JSON.parse(readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8"));
+export const defaultFeatureFlags = {
+  FV_FACE_SEARCH: vars.FV_FACE_SEARCH as string,
+  WHATSAPP_ENABLED: vars.WHATSAPP_ENABLED as string,
+};
+export const buyer: AuthenticateSession = async () => ({ id: "buyer-1", role: "buyer" });
+export const photographer: AuthenticateSession = async () => ({ id: "owner", role: "photographer" });
 export const paymentEvent = { provider: "lab", providerEventId: "paid-1", txid: "tx-1", amountCents: 4500 };
 
-export async function commerceEnvironment(options: { paidAt?: number; settle?: boolean; holdDays?: number } = {}) {
+export async function commerceEnvironment(options: { paidAt?: number; settle?: boolean; holdDays?: number; commissionConfigured?: boolean } = {}) {
   const context = testEnvironment();
   const { sqlite, env, bucket } = context;
+  Object.assign(env, defaultFeatureFlags);
   env.PAYOUT_KEY_ENCRYPTION_KEY = Buffer.alloc(32, 42).toString("base64");
   const now = options.paidAt ?? Date.now();
-  sqlite.prepare(`INSERT INTO commission_rules
+  if (options.commissionConfigured !== false) sqlite.prepare(`INSERT INTO commission_rules
     (id,version,platform_fee_bps,provider_fee_bps,provider_fee_fixed_cents,provider_fee_bearer,hold_days)
     VALUES ('rule',1,2000,99,0,'platform',?)`).run(options.holdDays ?? 7);
   sqlite.prepare(`INSERT INTO orders

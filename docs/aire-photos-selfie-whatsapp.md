@@ -47,6 +47,14 @@ O vetor de exemplo está abreviado: cada vetor deve ter exatamente `FACE_EMBEDDI
 
 A implementação é síncrona por requisição: não há selfie ou vetor numa fila. `GET /search/sessions/:id` recupera somente resultados do titular por até 30 minutos, revalidando visibilidade. `DELETE` remove a sessão e registra revogação do consentimento. O recibo de consentimento permanece apenas pelo prazo de auditoria configurado; não contém imagem, vetor, IP puro nem identidade em texto aberto.
 
+### Orçamento de CPU
+
+A varredura síncrona pode decifrar e comparar até **30.000 vetores por requisição**. Essa carga não cabe nos **10 ms de CPU do Workers Free**; a operação da busca exige **Workers Paid**, com `limits.cpu_ms` adequado no ambiente de implantação. A Cloudflare permite configurar esse limite no plano pago; veja os [limites oficiais de CPU](https://developers.cloudflare.com/workers/platform/limits/#cpu-time).
+
+`FACE_MAX_SCANNED_VECTORS` controla o teto: inteiro entre **1 e 30000**, padrão **30000** quando ausente. Valores fora da faixa ou não inteiros resultam em 503 `face_not_configured`; ultrapassar o teto durante a busca resulta em 503 `face_index_limit`, sem devolver ou persistir resultados parciais. Reduzir o teto limita a carga, mas não torna esta implementação compatível com o Free.
+
+Ao preparar um ambiente Paid autorizado, configure, por exemplo, `"limits": { "cpu_ms": 30000 }` no bloco desse ambiente e valide o orçamento com medições de CPU no volume e nas dimensões reais do índice antes de ligar a flag. Esse exemplo corresponde a 30 segundos de CPU, não a uma medição de desempenho desta aplicação. A arquitetura síncrona permanece a mesma.
+
 ### Consentimento e índice do álbum
 
 `face_search_consents` registra versão/finalidade, data, HMAC do sujeito e HMAC diário do IP confiável `CF-Connecting-IP`, com segredo do Worker. Não confie em `X-Forwarded-For` enviado pelo cliente. Mantenha o endpoint atrás do Cloudflare; o cabeçalho precisa vir da infraestrutura confiável. Limites: cinco buscas/hora e vinte/dia por sujeito, além de limites por IP pseudonimizado. Os IP-hashes mudam por dia UTC; o limite diário por IP acompanha esse dia.
@@ -66,7 +74,7 @@ WHERE id='album-autorizado';
 
 Esse SQL é uma orientação de integração, não uma autorização jurídica. O recibo/hash sozinho não certifica conformidade com a LGPD. A operação deve definir base legal dos participantes, transparência, retenção, atendimento a direitos e avaliação de riscos. Nenhuma inferência identifica civilmente uma pessoa; os resultados são possíveis correspondências em fotos já disponíveis no álbum.
 
-Fotos novas são indexadas após a geração/aprovação da prévia. Para catálogo existente, o fotógrafo proprietário pode chamar `POST /api/fotoviva/studio/photos/:photoId/face-index`, sem vetores no corpo. O Worker lê o original privado, solicita os embeddings faciais e cifra os templates com AES-256-GCM, com contexto de álbum/foto/modelo/face. O índice do álbum contém somente ciphertext; os vetores claros são temporários. Expira no menor prazo entre a janela do álbum e 30 dias. Busca paginada em blocos de 100, máximo de 30 mil faces por álbum.
+Fotos novas são indexadas após a geração/aprovação da prévia. Para catálogo existente, o fotógrafo proprietário pode chamar `POST /api/fotoviva/studio/photos/:photoId/face-index`, sem vetores no corpo. O Worker lê o original privado, solicita os embeddings faciais e cifra os templates com AES-256-GCM, com contexto de álbum/foto/modelo/face. O índice do álbum contém somente ciphertext; os vetores claros são temporários. Expira no menor prazo entre a janela do álbum e 30 dias. Busca paginada em blocos de 100, limitada por `FACE_MAX_SCANNED_VECTORS` por requisição (padrão de 30 mil faces).
 
 Ocultar, mover ou trocar o original de uma foto invalida sua indexação; desabilitar/alterar a configuração facial do álbum apaga o índice correspondente. O cron também apaga índices expirados e tenta até três indexações de fotos pendentes; modelo novo ou renovação de índice válido reinicia o ciclo. A busca revalida o álbum/foto mesmo que haja linhas antigas no índice.
 
@@ -74,7 +82,7 @@ Os templates cifrados do catálogo permanecem pelo prazo do índice, ao contrár
 
 ## WhatsApp após a liquidação
 
-O checkout aceita telefone E.164 e opt-in específico:
+O checkout exige sessão autenticada (`buyer` ou `photographer`), vincula o pedido a `session.id` e aceita telefone E.164 e opt-in específico:
 
 ```json
 {
@@ -103,7 +111,7 @@ O provedor implementado é **Meta WhatsApp Cloud API**, com template de utilidad
 
 > Olá! Suas fotos do evento já estão prontas para download: {{1}}
 
-O parâmetro é `PUBLIC_SITE_URL/minhas-fotos/{orderId}`. A origem padrão aponta ao laboratório indicado, pois não foi informado outro domínio Aire Photos. Altere para o domínio real quando disponível. O frontend principal precisa servir essa página e autenticar o comprador; o link não contém ticket efêmero nem acesso público aos originais. Não foram alteradas ou publicadas páginas no Worker remoto.
+O parâmetro é `PUBLIC_SITE_URL/minhas-fotos/{orderId}`. `PUBLIC_SITE_URL` permanece em `https://fotoviva-pedromatosx-lab.pedromatos2050.workers.dev`, pois o domínio ainda não foi comprado. Quando a zona estiver ativa, altere a variável para `https://airephotos.com.br` no ambiente correspondente. O frontend principal precisa servir essa página e autenticar o comprador; o link não contém ticket efêmero nem acesso público aos originais. Não foram alteradas ou publicadas páginas no Worker remoto.
 
 Outbox única por pedido + lease impedem envios simultâneos/repetição de webhook. `accepted` significa aceite pela API Meta, não confirmação de entrega ao aparelho. HTTP 429 tem retentativa limitada com espera; erros permanentes falham sem reenvio. Timeout, 5xx ou interrupção após envio são `uncertain`: não há garantia de idempotência ponta a ponta sem suporte do provedor, portanto não se repete automaticamente uma tentativa ambígua. Concilie no provedor usando `provider_message_id`/`biz_opaque_callback_data` antes de reativar manualmente uma linha. Nenhum envio de teste a telefone real faz parte da validação local.
 
@@ -128,10 +136,18 @@ Secrets do Worker:
 Vars adicionais:
 
 - `FV_FACE_SEARCH=on`, `FACE_EMBEDDINGS_URL`, `FACE_MODEL_VERSION`, `FACE_EMBEDDING_DIMENSIONS`, `FACE_MEDIUM_THRESHOLD`, `FACE_HIGH_THRESHOLD`.
-- `FACE_CONSENT_RETENTION_DAYS` (90 no exemplo, ajustável conforme a política da operação).
+- `FACE_CONSENT_RETENTION_DAYS` (90 no exemplo, ajustável conforme a política da operação) e `FACE_MAX_SCANNED_VECTORS` (1–30000, padrão 30000).
 - `WHATSAPP_ENABLED=on`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_GRAPH_VERSION` suportada pela conta, `WHATSAPP_TEMPLATE_NAME`, `WHATSAPP_TEMPLATE_LANGUAGE` e `PUBLIC_SITE_URL`.
 
-Flags estão ligadas no arquivo de exemplo; serviços só funcionam quando têm configuração válida. Credenciais ausentes não geram vetores simulados nem enviam mensagens sem autorização. Não registre imagens, vetores, IP puro, token Meta, chave facial ou números de telefone em logs de aplicação/proxy.
+### Ativação por ambiente e decisão dos sócios
+
+As duas flags vêm em **`off`** no `wrangler.jsonc` e devem permanecer assim até a decisão dos sócios. Configurar credenciais não liga os recursos. A liberação da biometria depende da definição e documentação da base legal LGPD, inclusive para o índice das pessoas fotografadas; a liberação do WhatsApp depende de conta **Meta Business verificada**, template de utilidade aprovado e política de opt-in definida pelos sócios.
+
+- **Testes Vitest:** os testes carregam as flags padrão do Wrangler; cada fixture que precisa de busca ou envio define explicitamente a respectiva flag como `on`, com dados sintéticos e provedores simulados.
+- **Desenvolvimento local:** para ensaio autorizado e isolado, use `npx wrangler dev --var FV_FACE_SEARCH:on` ou `npx wrangler dev --var WHATSAPP_ENABLED:on`. Cada comando liga somente o recurso indicado. Configure as demais vars e use apenas serviços simulados; mantenha os segredos de desenvolvimento no arquivo local ignorado `.dev.vars`.
+- **Homologação/produção:** após aprovação dos sócios para aquele ambiente, defina separadamente `env.<ambiente>.vars.FV_FACE_SEARCH = "on"` e/ou `env.<ambiente>.vars.WHATSAPP_ENABLED = "on"` em `wrangler.jsonc`. Cada flag habilita seu próprio recurso; mantenha a outra em `off` se não aprovada. O arquivo atual ainda não declara ambientes nomeados: ao adicioná-los, declare também todas as vars e bindings necessários, pois [vars e bindings não são herdados entre ambientes](https://developers.cloudflare.com/workers/wrangler/environments/#non-inheritable-keys-and-environments). Configure os secrets por ambiente (`npx wrangler secret put NOME --env <ambiente>`) e implante com `npx wrangler deploy --env <ambiente>` somente no fluxo de implantação aprovado. Para o destino sem `--env`, a configuração equivalente fica em `vars` no nível raiz.
+
+Para desligar, volte a flag correspondente a `off` no mesmo ambiente. A busca responde `feature_disabled` e o WhatsApp não envia nem consome tentativas da outbox. Notificações pendentes podem ser processadas ao religar, respeitando consentimento e validade do pedido. Credenciais ausentes não geram vetores simulados nem enviam mensagens. Não registre imagens, vetores, IP puro, token Meta, chave facial ou números de telefone em logs de aplicação/proxy.
 
 Valide com `npm run check`, `npm run build:media` e `npm run deploy:check`. Testes novos usam somente JPEGs/embeddings sintéticos e fetch simulado: consentimento/rate limit, faixas/cosseno, isolamento/visibilidade, cifragem, descarte, outbox transacional, checkout → webhook → WhatsApp, duplicação/retentativas e limpeza paginada. Homologação com endpoint facial, Cloudflare e Meta reais depende das credenciais e da infraestrutura configurada.
 
