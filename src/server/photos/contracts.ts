@@ -4,7 +4,7 @@ export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 export const MAX_PREVIEW_BYTES = 2 * 1024 * 1024;
 export const UPLOAD_TTL_SECONDS = 600;
 export const MAX_ATTEMPTS = 5;
-export const WATERMARK = "FOTOVIVA  PRÉVIA NÃO AUTORIZADA";
+export const WATERMARK = "AIRE PHOTOS  PRÉVIA NÃO AUTORIZADA";
 
 export const bibSchema = z.object({
   bibNumber: z.string().regex(/^\d{1,5}$/),

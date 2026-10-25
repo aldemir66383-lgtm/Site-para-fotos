@@ -45,12 +45,12 @@ export async function handleCommerceRequest(request: Request, env: Env, ctx?: Pi
         };
         if (zipDownload) {
           const output = streamZip(claim.items.map((item, i) => ({
-            filename: `fotoviva-${String(i + 1).padStart(4, "0")}-${item.photo_id.replace(/[^a-zA-Z0-9_-]/g, "_")}.jpg`,
+            filename: `aire-photos-${String(i + 1).padStart(4, "0")}-${item.photo_id.replace(/[^a-zA-Z0-9_-]/g, "_")}.jpg`,
             open: () => open(item),
           })), report);
           ctx?.waitUntil(output.completion);
           return new Response(output.stream, { headers: { ...securityHeaders, "Content-Type": "application/zip",
-            "Content-Disposition": `attachment; filename="fotoviva-evento-${claim.orderId}.zip"` } });
+            "Content-Disposition": `attachment; filename="aire-photos-evento-${claim.orderId}.zip"` } });
         }
         let input: ReadableStream<Uint8Array>;
         try { input = await open(claim.items[0]); }
@@ -58,7 +58,7 @@ export async function handleCommerceRequest(request: Request, env: Env, ctx?: Pi
         const output = streamOriginal(input, report);
         ctx?.waitUntil(output.completion);
         return new Response(output.stream, { headers: { ...securityHeaders, "Content-Type": "image/jpeg",
-          "Content-Disposition": `attachment; filename="fotoviva-${claim.items[0].photo_id.slice(0, 8)}.jpg"` } });
+          "Content-Disposition": `attachment; filename="aire-photos-${claim.items[0].photo_id.slice(0, 8)}.jpg"` } });
       }
     }
     return json({ error: "Método não permitido.", code: "method_not_allowed" }, 405);

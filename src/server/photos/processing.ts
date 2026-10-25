@@ -1,6 +1,7 @@
 import { ApiError, MAX_ATTEMPTS, MAX_PREVIEW_BYTES, MAX_UPLOAD_BYTES, mediaResultSchema, readLimited, type PhotoJob } from "./contracts.js";
 import type { Env } from "./env.js";
 import type { UploadRow } from "./handlers.js";
+import { indexPhotoFaces } from "../search/face-index.js";
 
 const LEASE_MS = 5 * 60_000;
 
@@ -84,6 +85,9 @@ export async function processJob(job: PhotoJob, env: Env): Promise<void> {
         .bind(previewKey, `/api/fotoviva/previews/${job.photoId}`, originalKey, exif.capturedAt,
           result.width, result.height, new Date().toISOString(), result.pipelineVersion, job.photoId, job.photoId, token),
     ]);
+    if(env.FV_FACE_SEARCH==="on") {
+      try {await indexPhotoFaces(env,job.photoId,undefined,original);} catch {console.error("face_index_deferred");}
+    }
   } catch (error) {
     const terminal = error instanceof ApiError && error.status < 500 || row.attempts >= MAX_ATTEMPTS;
     const code = error instanceof ApiError ? error.code : "processing_failed";

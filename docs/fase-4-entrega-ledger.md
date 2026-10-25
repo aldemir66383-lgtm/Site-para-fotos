@@ -1,5 +1,7 @@
 # Fase 4.1 — Entrega de originais e split contábil
 
+> Atualização Aire Photos: o passo seguinte acrescentou [busca facial, WhatsApp pós-pagamento e manutenção](aire-photos-selfie-whatsapp.md). O webhook Pix agora integra a liquidação à outbox WhatsApp. Os anexos novos usam `aire-photos-…`; nomes internos da API permanecem para compatibilidade.
+
 O Worker da Fase 2 agora roteia também tickets, entrega individual, ZIP e saldo/solicitação de repasse. Os originais continuam no mesmo R2 privado; nenhuma rota retorna URL pré-assinada de leitura. Este passo implementa o backend de entrega e contabilidade. O adaptador de pagamento real, a transferência Pix e o envio de WhatsApp não são implementados por estes handlers.
 
 ## Contratos

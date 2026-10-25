@@ -1,5 +1,7 @@
 # F06 — Busca por selfie (reconhecimento facial)
 
+> **Documento histórico.** A implementação atual está em [Aire Photos — selfie e WhatsApp](../aire-photos-selfie-whatsapp.md). A solicitação posterior implementou `FV_FACE_SEARCH=on`, endpoint facial e controles de consentimento/álbum; os bloqueios de desenvolvimento abaixo descrevem o briefing original. A habilitação técnica não certifica por si só conformidade jurídica para dados reais.
+
 > **Status:** ✅ fluxo, arquitetura e contrato projetados · ⛔ **BLOQUEADA para dados reais** até haver aprovação jurídica (RIPD), revisão do Codex e decisão formal
 > **Feature flag:** `FV_FACE_SEARCH = off` (padrão) | `synthetic` (só no laboratório, só álbuns sintéticos). **Não existe o valor `on`** no código até a aprovação.
 > A interface atual (`busca-selfie`, desativada) continua como está.

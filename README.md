@@ -1,4 +1,10 @@
-# Site-para-fotos — FotoViva
+# Site-para-fotos — Aire Photos
+
+## Busca por selfie e WhatsApp
+
+Busca facial com consentimento específico, índice cifrado por álbum, comparação cosseno e descarte dos buffers da selfie; notificações WhatsApp via Meta após a liquidação, com outbox persistente. O cron de dez minutos limpa uploads órfãos, expira pedidos e remove dados temporários.
+
+Veja [contratos e configuração Aire Photos](docs/aire-photos-selfie-whatsapp.md). Os nomes internos FotoViva foram preservados para compatibilidade; serviços externos exigem suas credenciais e o catálogo facial precisa estar habilitado/indexado.
 
 ## Entrega e contabilidade — Fase 4.1
 

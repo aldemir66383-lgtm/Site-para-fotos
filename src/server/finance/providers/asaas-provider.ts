@@ -29,7 +29,7 @@ export class AsaasPaymentProvider implements PaymentProvider {
         billingType: "PIX",
         value: Number(value),
         dueDate: new Date(Date.now() + input.expiresInSeconds * 1000).toISOString().split("T")[0],
-        description: `FotoViva - Pedido #${input.orderId}`,
+        description: `Aire Photos - Pedido #${input.orderId}`,
         externalReference: input.txid,
       }),
     });

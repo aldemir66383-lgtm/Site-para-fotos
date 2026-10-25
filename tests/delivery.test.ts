@@ -86,7 +86,7 @@ describe("pacote ZIP completo por streaming", () => {
     const ticket = await issue(context, null);
     const response = await download(ticket.url, context);
     expect(response?.status).toBe(200);
-    expect(response?.headers.get("Content-Disposition")).toBe('attachment; filename="fotoviva-evento-order-1.zip"');
+    expect(response?.headers.get("Content-Disposition")).toBe('attachment; filename="aire-photos-evento-order-1.zip"');
     const bytes = new Uint8Array(await response!.arrayBuffer());
     const reader = new ZipReader(new Uint8ArrayReader(bytes), { useWebWorkers: false });
     const entries = await reader.getEntries();
@@ -94,7 +94,7 @@ describe("pacote ZIP completo por streaming", () => {
     for (let i = 0; i < entries.length; i++) {
       const entry = entries[i];
       if (entry.directory) throw new Error("Unexpected ZIP directory");
-      expect(entry.filename).toMatch(/^fotoviva-\d{4}-[a-zA-Z0-9_-]+\.jpg$/);
+      expect(entry.filename).toMatch(/^aire-photos-\d{4}-[a-zA-Z0-9_-]+\.jpg$/);
       const data = await entry.getData!(new Uint8ArrayWriter(), { checkSignature: true, useWebWorkers: false });
       expect(new TextDecoder().decode(data)).toBe(`synthetic-original-full-resolution-${i}`);
     }

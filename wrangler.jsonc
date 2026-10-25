@@ -11,7 +11,15 @@
     "AUTH_JWKS_URL": "https://auth.example.com/.well-known/jwks.json",
     "AUTH_ISSUER": "https://auth.example.com/",
     "AUTH_AUDIENCE": "fotoviva",
-    "MEDIA_SERVICE_URL": "https://media.example.com/process"
+    "MEDIA_SERVICE_URL": "https://media.example.com/process",
+    "PUBLIC_SITE_URL": "https://fotoviva-pedromatosx-lab.pedromatos2050.workers.dev",
+    "FV_FACE_SEARCH": "on",
+    "FACE_MODEL_VERSION": "REPLACE_FACE_MODEL_VERSION",
+    "FACE_EMBEDDING_DIMENSIONS": "128",
+    "FACE_CONSENT_RETENTION_DAYS": "90",
+    "WHATSAPP_ENABLED": "on",
+    "WHATSAPP_TEMPLATE_NAME": "aire_photos_download_ready",
+    "WHATSAPP_TEMPLATE_LANGUAGE": "pt_BR"
   },
   "d1_databases": [{
     "binding": "DB", "database_name": "fotoviva",
@@ -26,5 +34,5 @@
       "dead_letter_queue": "fotoviva-photos-dlq", "retry_delay": 60
     }]
   },
-  "triggers": { "crons": ["*/2 * * * *"] }
+  "triggers": { "crons": ["*/2 * * * *", "*/10 * * * *"] }
 }
