@@ -45,3 +45,7 @@ A aplicação principal fica no repositório privado `pedromatosx/fotoviva`. Est
 | `security/codex-hardening` | Codex (segurança) | Não é mantida neste repositório |
 
 > **Este repositório é público.** Não envie credenciais, dados reais, fotografias privadas nem dados biométricos.
+
+## Acessos separados e painel administrativo
+
+Veja [execucao local, contas e testes](docs/acessos-admin-fotografo.md).

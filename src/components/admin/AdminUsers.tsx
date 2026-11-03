@@ -1,0 +1,12 @@
+import { useState } from "react";
+import { useRemote } from "../../web/useRemote";
+import { formatDate, Loading, RequestError } from "../../web/ui";
+import { usersSchema } from "./contracts";
+
+const roles = { admin: "Administrador", photographer: "Fotógrafo", buyer: "Comprador" };
+export function AdminUsers() {
+  const { data, loading, error, refresh } = useRemote("/api/admin/users", usersSchema);
+  const [query, setQuery] = useState("");
+  const users = data?.users.filter((user) => `${user.name} ${user.email}`.toLowerCase().includes(query.toLowerCase())) ?? [];
+  return <div className="space-y-6"><header><p className="eyebrow">Pessoas que fazem parte</p><h1 className="mt-2 text-3xl font-extrabold">Usuários<span className="text-orange-500">.</span></h1><p className="muted mt-2 text-sm">Consulte as contas, seus perfis e a situação de acesso.</p></header><section className="panel overflow-hidden"><div className="p-6"><label className="block max-w-md text-sm font-semibold">Buscar por nome ou e-mail<input className="field" placeholder="Quem você procura?" value={query} onChange={(event) => setQuery(event.target.value)} /></label><p className="muted mt-3 text-xs">Busca nos últimos 100 cadastros carregados. Consulta sem alteração de permissões.</p></div>{loading ? <Loading /> : error ? <RequestError message={error} retry={refresh} /> : <div className="overflow-x-auto"><table className="w-full"><caption className="sr-only">Contas cadastradas na plataforma</caption><thead className="muted bg-zinc-50 dark:bg-zinc-800/40"><tr>{["Nome", "E-mail", "Perfil", "Situação", "Cadastro"].map((text) => <th key={text} className="table-head" scope="col">{text}</th>)}</tr></thead><tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">{users.map((user) => <tr key={user.id}><th className="table-cell text-left font-semibold" scope="row">{user.name}</th><td className="table-cell muted">{user.email}</td><td className="table-cell"><span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-800 dark:bg-orange-950 dark:text-orange-200">{roles[user.role]}</span></td><td className="table-cell">{user.status === "active" ? "Ativo" : user.status === "suspended" ? "Suspenso" : user.status}</td><td className="table-cell muted">{formatDate(user.created_at)}</td></tr>)}{users.length === 0 && <tr><td colSpan={5} className="muted p-10 text-center">Nenhum usuário encontrado.</td></tr>}</tbody></table></div>}</section></div>;
+}

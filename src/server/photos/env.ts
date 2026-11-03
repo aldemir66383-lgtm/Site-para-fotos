@@ -1,6 +1,8 @@
 import type { PhotoJob } from "./contracts.js";
 
 export interface Env {
+  NATIVE_AUTH_SECRET?: string;
+  ASSETS?: Fetcher;
   DB: D1Database;
   PHOTOS: R2Bucket;
   PHOTO_QUEUE: Queue<PhotoJob>;

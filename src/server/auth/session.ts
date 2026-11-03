@@ -1,6 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { ApiError } from "../photos/contracts.js";
 import type { Env } from "../photos/env.js";
+import { parseNativeSession } from "./native-auth.js";
 
 export interface Session { id: string; role: string }
 export type AuthenticateSession = (request: Request, env: Env) => Promise<Session>;
@@ -18,6 +19,8 @@ export const authenticateSession: AuthenticateSession = async (request, env) => 
     }
   }
   if (!token) throw new ApiError(401, "unauthenticated", "Autenticação necessária.");
+  const native = await parseNativeSession(request, env);
+  if (native) return { id: native.id, role: native.role };
   const url = new URL(env.AUTH_JWKS_URL);
   if (url.protocol !== "https:") throw new Error("AUTH_JWKS_URL must use HTTPS");
   let keySet = keySets.get(url.href);

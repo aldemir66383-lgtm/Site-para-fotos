@@ -5,6 +5,12 @@
   "compatibility_date": "2026-10-24",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
+  "assets": {
+    "directory": "./dist/web",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
   "vars": {
     "R2_ACCOUNT_ID": "REPLACE_ACCOUNT_ID",
     "R2_BUCKET_NAME": "fotoviva-private",
@@ -12,7 +18,7 @@
     "AUTH_ISSUER": "https://auth.example.com/",
     "AUTH_AUDIENCE": "fotoviva",
     "MEDIA_SERVICE_URL": "https://media.example.com/process",
-    "PUBLIC_SITE_URL": "https://fotoviva-pedromatosx-lab.pedromatos2050.workers.dev",
+    "PUBLIC_SITE_URL": "https://airephotos.com.br",
     "FV_FACE_SEARCH": "off",
     "FACE_MODEL_VERSION": "REPLACE_FACE_MODEL_VERSION",
     "FACE_EMBEDDING_DIMENSIONS": "128",

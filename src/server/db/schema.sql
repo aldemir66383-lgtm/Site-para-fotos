@@ -413,3 +413,30 @@ CREATE TABLE whatsapp_outbox (
 );
 CREATE INDEX idx_whatsapp_outbox_pending ON whatsapp_outbox(state,next_attempt_at_ms);
 CREATE TABLE maintenance_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+
+-- 0005_users_auth_admin.sql
+-- Tabela de usuários para login nativo no Aire Photos (Cloudflare D1)
+
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  password_hash TEXT NOT NULL,
+  password_salt TEXT NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL CHECK(role IN ('buyer', 'photographer', 'admin')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'suspended')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+
+CREATE TABLE revoked_sessions (
+  id TEXT PRIMARY KEY,
+  expires_at INTEGER NOT NULL
+);
+CREATE INDEX idx_revoked_sessions_expiry ON revoked_sessions(expires_at);
+
+-- Existing financial rules remain immutable. Every edit creates a new version.
+ALTER TABLE commission_rules ADD COLUMN name TEXT NOT NULL DEFAULT 'Regra de comissão';

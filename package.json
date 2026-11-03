@@ -6,15 +6,21 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --ip localhost --port 8787 --persist-to .wrangler/access-dev",
     "dev:media": "tsx src/server/media/service.ts",
     "build:media": "tsc -p tsconfig.media.json",
     "start:media": "node dist/media/service.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.frontend.json",
     "test": "vitest run",
     "check": "npm run typecheck && npm test",
     "deploy:check": "wrangler deploy --dry-run",
-    "db:migrate:local": "wrangler d1 migrations apply fotoviva --local"
+    "db:migrate:local": "wrangler d1 migrations apply fotoviva --local --persist-to .wrangler/access-dev",
+    "dev:web": "vite",
+    "build:web": "vite build",
+    "preview:web": "vite preview --host localhost",
+    "test:e2e": "playwright test",
+    "setup:local": "tsx scripts/setup-access-local.ts",
+    "admin:create:local": "tsx scripts/seed-admin.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.0.0",
@@ -23,14 +29,25 @@
     "exifr": "^7.1.3",
     "google-auth-library": "^10.0.0",
     "jose": "^6.0.0",
+    "lucide-react": "^1.67.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.5",
     "sharp": "^0.35.5",
     "zod": "^4.0.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261024.1",
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/vite": "^4.3.4",
     "@types/node": "^24.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "tailwindcss": "^4.3.4",
     "tsx": "^4.0.0",
     "typescript": "^5.9.0",
+    "vite": "^8.3.5",
     "vitest": "^5.0.5",
     "wrangler": "^4.0.0"
   },

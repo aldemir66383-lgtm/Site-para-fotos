@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": ["react", "react-dom", "vite/client"],
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["src/components/auth/**/*.ts", "src/components/auth/**/*.tsx", "src/components/admin/**/*.tsx", "src/components/photographer/**/*.tsx", "src/web/**/*.ts", "src/web/**/*.tsx", "vite.config.ts"]
+}

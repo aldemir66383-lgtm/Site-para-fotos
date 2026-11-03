@@ -11,6 +11,8 @@ export function testEnvironment() {
     "0002_photo_pipeline.sql",
     "0003_delivery_ledger.sql",
     "0004_face_whatsapp_maintenance.sql",
+    "0005_users_auth_admin.sql",
+    "0006_access_and_commission_versions.sql",
   ]) {
     sqlite.exec(
       readFileSync(
@@ -156,6 +158,7 @@ export function testEnvironment() {
     sendBatch: vi.fn(async () => {}),
   };
   const env = {
+    NATIVE_AUTH_SECRET: "native-test-secret-32-bytes-or-longer",
     DB: db,
     PHOTOS: bucket,
     PHOTO_QUEUE: queue,
